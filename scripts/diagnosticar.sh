@@ -13,8 +13,25 @@ if [ ! -x "$RAIZ/.venv/bin/python" ]; then
     echo "Rode primeiro: ./scripts/instalar.sh" >&2
     exit 1
 fi
+# Sem argumento: pede o arquivo interativamente. Arrastar o arquivo do gerenciador
+# para a janela do terminal cola o caminho já escapado — evita erro de sintaxe do
+# shell com nomes que têm espaços, parênteses ou acentos.
 if [ $# -lt 1 ]; then
-    echo "Uso: ./scripts/diagnosticar.sh ARQUIVO.pdf [--imagens] [--texto] [--debug]" >&2
+    echo "Uso: ./scripts/diagnosticar.sh ARQUIVO.pdf [--imagens] [--texto] [--debug]"
+    echo
+    echo "Dica: arraste o arquivo do gerenciador de arquivos para esta janela e tecle Enter."
+    read -r -p "Arquivo: " ENTRADA
+    # Remove aspas e barras de escape que o arrastar-e-soltar adiciona.
+    ENTRADA="${ENTRADA%\"}"; ENTRADA="${ENTRADA#\"}"
+    ENTRADA="${ENTRADA%\'}"; ENTRADA="${ENTRADA#\'}"
+    ENTRADA="${ENTRADA//\\/}"
+    set -- "$ENTRADA"
+fi
+
+if [ ! -f "$1" ]; then
+    echo "Arquivo não encontrado: $1" >&2
+    echo "Se o nome tem espaços ou parênteses, coloque o caminho entre aspas:" >&2
+    echo "  ./scripts/diagnosticar.sh \"/caminho/Proposta (1).pdf\"" >&2
     exit 1
 fi
 
