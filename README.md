@@ -26,16 +26,52 @@ PDF/foto no Telegram
 Se o texto nativo do PDF não render nenhum item (tabela em imagem, por exemplo), o pipeline
 reprocessa automaticamente pelo caminho de imagens.
 
-## Instalação
+## Instalação (Linux)
+
+Um comando só. Ele encontra o Python, cria o ambiente, instala tudo, roda os testes,
+prepara o `.env` e cria um atalho no menu de aplicativos:
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
+./scripts/instalar.sh
+```
+
+No fim ele abre o `.env` para você preencher duas coisas:
+
+- `TELEGRAM_BOT_TOKEN` — peça ao [@BotFather](https://t.me/BotFather) no Telegram (`/newbot`);
+- `LLM_API_KEY` — a chave do provedor escolhido em `LLM_MODEL`.
+
+### Ligar o bot
+
+Pelo menu de aplicativos, procure por **Proposal-Xtraction**. Ou pelo terminal:
+
+```bash
+./scripts/rodar.sh
+```
+
+O bot fica ligado enquanto a janela estiver aberta. Para deixá-lo rodando em segundo plano,
+ligando sozinho quando o computador inicia:
+
+```bash
+./scripts/instalar-servico.sh
+```
+
+Depois disso, `systemctl --user restart proposal-xtraction` aplica mudanças do `.env` e
+`journalctl --user -u proposal-xtraction -f` acompanha os logs.
+
+### Instalação manual
+
+Se preferir fazer na mão (ou estiver em macOS/Windows):
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 cp .env.example .env      # preencha TELEGRAM_BOT_TOKEN, LLM_MODEL e LLM_API_KEY
 python main.py
 ```
 
-O token do bot sai do [@BotFather](https://t.me/BotFather).
+O `source .venv/bin/activate` precisa ser repetido a cada terminal novo — um
+`ModuleNotFoundError: No module named 'proposal_xtraction'` quase sempre significa
+que o ambiente virtual não está ativo. Os scripts acima evitam esse passo.
 
 ## Trocando de LLM
 
@@ -140,6 +176,10 @@ proposal_xtraction/
 ├── excel.py          # geração do .xlsx
 ├── logging_setup.py  # logs JSON
 └── config.py         # variáveis de ambiente
+scripts/
+├── instalar.sh          # instalação completa em um comando
+├── rodar.sh             # liga o bot sem precisar ativar o venv
+└── instalar-servico.sh  # roda em segundo plano via systemd
 ```
 
 Para adicionar WhatsApp ou e-mail, basta um novo adapter em `bot/` chamando o mesmo
