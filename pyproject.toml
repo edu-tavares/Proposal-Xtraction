@@ -1,0 +1,46 @@
+[project]
+name = "proposal-xtraction"
+version = "0.1.0"
+description = "Bot que converte propostas comerciais (PDF/imagem) em planilhas Excel estruturadas"
+requires-python = ">=3.11"
+dependencies = [
+    "litellm>=1.55",
+    "python-telegram-bot>=21.0",
+    "pdfplumber>=0.11",
+    "pypdfium2>=4.30",
+    "pillow>=10.0",
+    "openpyxl>=3.1",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.2",
+    "structlog>=24.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "reportlab>=4.0",
+    "ruff>=0.4",
+]
+
+[project.scripts]
+proposal-xtraction = "main:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["proposal_xtraction", "proposal_xtraction.bot", "proposal_xtraction.llm", "proposal_xtraction.extraction"]
+py-modules = ["main"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
