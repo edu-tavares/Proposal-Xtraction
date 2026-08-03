@@ -11,3 +11,4 @@ dist/
 tmp/
 *.xlsx
 !tests/fixtures/*.xlsx
+diagnostico/
