@@ -16,7 +16,11 @@ from proposal_xtraction.llm.base import (
     LLMModelNotFound,
     LLMRateLimited,
 )
-from proposal_xtraction.llm.litellm_client import LiteLLMClient, parse_json_loose
+from proposal_xtraction.llm.litellm_client import (
+    LiteLLMClient,
+    parse_json_loose,
+    unwrap_schema_payload,
+)
 
 SCHEMA = {"type": "object", "properties": {"nome": {"type": "string"}}}
 
@@ -71,6 +75,53 @@ def test_parse_rejeita_resposta_vazia():
 def test_parse_rejeita_lista_no_topo():
     with pytest.raises(ValueError, match="objeto JSON"):
         parse_json_loose("[1, 2, 3]")
+
+
+# -- unwrap_schema_payload ---------------------------------------------------
+
+ESQUEMA_PROPOSTA = {
+    "type": "object",
+    "properties": {"fornecedor": {"type": "string"}, "itens": {"type": "array"}},
+}
+
+
+def test_objeto_no_formato_certo_passa_intacto():
+    dados = {"fornecedor": "ACME", "itens": []}
+    assert unwrap_schema_payload(dados, ESQUEMA_PROPOSTA) is dados
+
+
+def test_desembrulha_resposta_aninhada_sob_o_nome_do_schema():
+    """Provedores podem devolver {"proposta": {...}} — os dados não podem se perder."""
+    aninhado = {"proposta": {"fornecedor": "Sotreq", "itens": [{"descricao": "X"}]}}
+    assert unwrap_schema_payload(aninhado, ESQUEMA_PROPOSTA) == aninhado["proposta"]
+
+
+def test_desembrulha_dois_niveis():
+    dados = {"resultado": {"proposta": {"fornecedor": "ACME"}}}
+    assert unwrap_schema_payload(dados, ESQUEMA_PROPOSTA) == {"fornecedor": "ACME"}
+
+
+def test_nao_desembrulha_quando_ha_mais_de_uma_chave():
+    dados = {"algo": {"x": 1}, "outro": {"y": 2}}
+    assert unwrap_schema_payload(dados, ESQUEMA_PROPOSTA) == dados
+
+
+def test_nao_desembrulha_proposta_de_campo_unico_legitima():
+    dados = {"fornecedor": "ACME"}
+    assert unwrap_schema_payload(dados, ESQUEMA_PROPOSTA) == dados
+
+
+def test_desembrulhar_sem_schema_e_no_op():
+    dados = {"qualquer": {"coisa": 1}}
+    assert unwrap_schema_payload(dados, {}) == dados
+
+
+async def test_resposta_aninhada_chega_desembrulhada_ao_chamador(monkeypatch, client):
+    instalar_respostas(monkeypatch, client, ['{"proposta": {"nome": "ACME"}}'])
+    resultado = await client.complete_json(
+        "sys", [ContentPart.from_text("oi")], {"type": "object", "properties": {"nome": {}}}
+    )
+    assert resultado.data == {"nome": "ACME"}
 
 
 # -- complete_json -----------------------------------------------------------

@@ -48,7 +48,11 @@ from pathlib import Path
 from proposal_xtraction.config import get_settings
 from proposal_xtraction.extraction import loader
 from proposal_xtraction.llm.base import ContentPart
-from proposal_xtraction.llm.litellm_client import LiteLLMClient, parse_json_loose
+from proposal_xtraction.llm.litellm_client import (
+    LiteLLMClient,
+    parse_json_loose,
+    unwrap_schema_payload,
+)
 from proposal_xtraction.llm.prompts import SYSTEM_PROMPT, USER_INSTRUCTION
 from proposal_xtraction.models import Proposta, proposta_json_schema
 
@@ -141,12 +145,23 @@ except Exception as exc:
 
 print(f"    tokens: entrada={uso[0]} saída={uso[1]}")
 
-print("\n[3] RESPOSTA BRUTA DO MODELO")
-print("    ┌" + "─" * 64)
-for linha in (texto or "(resposta vazia)").splitlines()[:40]:
-    print(f"    │ {linha[:90]}")
-print("    └" + "─" * 64)
-(saida / "resposta_bruta.txt").write_text(texto or "")
+import textwrap
+
+print(f"\n[3] RESPOSTA BRUTA DO MODELO ({len(texto or '')} caracteres)")
+print("    ┌" + "─" * 74)
+bruta = texto or "(resposta vazia)"
+linhas = [
+    quebrada
+    for linha in bruta.splitlines() or [""]
+    for quebrada in (textwrap.wrap(linha, 74) or [""])
+]
+for linha in linhas[:60]:
+    print(f"    │ {linha}")
+if len(linhas) > 60:
+    print(f"    │ … (+{len(linhas) - 60} linhas — veja o arquivo completo abaixo)")
+print("    └" + "─" * 74)
+(saida / "resposta_bruta.txt").write_text(bruta)
+print(f"    → resposta completa salva em {saida / 'resposta_bruta.txt'}")
 
 # --- 3. O que sobrevive à validação ------------------------------------------
 print("\n[4] INTERPRETAÇÃO")
@@ -154,6 +169,11 @@ try:
     dados = parse_json_loose(texto)
 except ValueError as exc:
     sys.exit(f"    ✗ Não é JSON válido: {exc}")
+
+normalizado = unwrap_schema_payload(dados, schema)
+if normalizado is not dados and normalizado != dados:
+    print("    ℹ o provedor aninhou os dados sob uma chave extra — desembrulhado")
+dados = normalizado
 
 try:
     proposta = Proposta.model_validate(dados)

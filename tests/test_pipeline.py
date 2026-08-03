@@ -80,3 +80,37 @@ def test_validator_reporta_erro_de_tipo():
 
 def test_validator_aceita_proposta_valida():
     assert pipeline._validator(PROPOSTA_COM_ITEM) == []
+
+
+def test_validator_rejeita_objeto_aninhado():
+    """Sem isso, {"proposta": {...}} validaria como uma proposta vazia."""
+    erros = pipeline._validator({"proposta": PROPOSTA_COM_ITEM})
+    assert erros and "nível raiz" in erros[0]
+
+
+def test_validator_rejeita_objeto_sem_relacao_com_o_schema():
+    assert pipeline._validator({"foo": 1, "bar": 2})
+
+
+async def test_resposta_aninhada_do_provedor_nao_perde_os_itens(pdf_digital, settings, monkeypatch):
+    """Regressão: o provedor devolveu {"proposta": {...}} e a planilha saiu vazia.
+
+    Exercita o cliente real (não o FakeLLM) para cobrir a normalização que fica
+    dentro dele, e não apenas a validação do pipeline.
+    """
+    import json
+
+    from proposal_xtraction.llm.litellm_client import LiteLLMClient
+
+    cliente = LiteLLMClient(model="fake/modelo")
+    monkeypatch.setattr(cliente, "_supports_response_schema", lambda: True)
+
+    async def responde_aninhado(messages, response_format):
+        return json.dumps({"proposta": PROPOSTA_COM_ITEM}), (100, 20)
+
+    monkeypatch.setattr(cliente, "_call", responde_aninhado)
+
+    resultado = await pipeline.extract(pdf_digital, cliente, settings)
+
+    assert len(resultado.proposta.itens) == 1
+    assert resultado.proposta.fornecedor == "ACME"

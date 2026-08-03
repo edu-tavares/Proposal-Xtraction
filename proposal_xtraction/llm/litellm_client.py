@@ -53,6 +53,30 @@ def parse_json_loose(text: str) -> dict[str, Any]:
     return parsed
 
 
+def unwrap_schema_payload(data: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+    """Desembrulha respostas aninhadas sob uma chave única.
+
+    Alguns provedores devolvem `{"proposta": {...}}` em vez do objeto direto, usando
+    o nome do schema como invólucro. Como todos os campos do nosso schema são
+    opcionais, o objeto errado passaria na validação como uma proposta vazia — daí
+    a necessidade de normalizar antes de validar.
+    """
+    esperadas = set(schema.get("properties", {}))
+    if not esperadas:
+        return data
+
+    for _ in range(3):  # limite defensivo contra aninhamento absurdo
+        if esperadas & data.keys():
+            return data
+        if len(data) != 1:
+            break
+        (unico,) = data.values()
+        if not isinstance(unico, dict):
+            break
+        data = unico
+    return data
+
+
 class LiteLLMClient:
     """Fala com qualquer provedor suportado pela LiteLLM usando um formato único."""
 
@@ -147,7 +171,7 @@ class LiteLLMClient:
             totals["output"] += usage[1] or 0
 
             try:
-                data = parse_json_loose(text)
+                data = unwrap_schema_payload(parse_json_loose(text), schema)
                 errors = validator(data) if validator else []
                 if not errors:
                     return LLMResult(

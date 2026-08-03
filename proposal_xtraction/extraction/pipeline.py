@@ -33,6 +33,13 @@ class ExtractionResult:
 
 def _validator(data: dict[str, Any]) -> list[str]:
     """Valida o JSON contra `Proposta` e devolve erros legíveis para o modelo."""
+    # Todos os campos de `Proposta` são opcionais, então um objeto com a estrutura
+    # errada validaria como proposta vazia. Rejeitamos antes que isso aconteça.
+    if not set(Proposta.model_fields) & data.keys():
+        return [
+            "o objeto não contém nenhum campo do schema: os campos devem estar no "
+            "nível raiz do JSON, não aninhados dentro de outra chave"
+        ]
     try:
         Proposta.model_validate(data)
     except ValidationError as exc:
