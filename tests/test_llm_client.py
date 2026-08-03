@@ -7,7 +7,15 @@ from types import SimpleNamespace
 
 import pytest
 
-from proposal_xtraction.llm.base import ContentPart, LLMBadOutput
+from proposal_xtraction.llm.base import (
+    ContentPart,
+    LLMAuthFailed,
+    LLMBadOutput,
+    LLMError,
+    LLMInputTooLarge,
+    LLMModelNotFound,
+    LLMRateLimited,
+)
 from proposal_xtraction.llm.litellm_client import LiteLLMClient, parse_json_loose
 
 SCHEMA = {"type": "object", "properties": {"nome": {"type": "string"}}}
@@ -127,6 +135,31 @@ def test_imagem_vira_data_uri(client):
     assert conteudo[0] == {"type": "text", "text": "texto"}
     assert conteudo[1]["type"] == "image_url"
     assert conteudo[1]["image_url"]["url"].startswith("data:image/png;base64,")
+
+
+# -- tradução de erros do provedor -------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("excecao_litellm", "esperado"),
+    [
+        ("NotFoundError", LLMModelNotFound),
+        ("AuthenticationError", LLMAuthFailed),
+        ("RateLimitError", LLMRateLimited),
+        ("ContextWindowExceededError", LLMInputTooLarge),
+    ],
+)
+def test_erros_do_provedor_viram_erros_da_nossa_camada(excecao_litellm, esperado):
+    """Um modelo inexistente precisa virar mensagem acionável, não erro genérico."""
+    import litellm
+
+    tipo = getattr(litellm, excecao_litellm)
+    exc = tipo.__new__(tipo)  # as assinaturas variam; só o tipo importa aqui
+    assert isinstance(LiteLLMClient._translate(exc), esperado)
+
+
+def test_erro_desconhecido_vira_erro_generico():
+    assert type(LiteLLMClient._translate(ValueError("algo inesperado"))) is LLMError
 
 
 def test_json_schema_e_enviado_como_response_format(client):

@@ -85,3 +85,11 @@ class LLMBadOutput(LLMError):
 
 class LLMRefused(LLMError):
     """O modelo se recusou a processar o documento."""
+
+
+class LLMModelNotFound(LLMError):
+    """O modelo configurado não existe ou a chave não tem acesso a ele."""
+
+
+class LLMAuthFailed(LLMError):
+    """A chave do provedor é inválida ou não foi aceita."""

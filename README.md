@@ -98,6 +98,16 @@ LLM_API_BASE=http://localhost:11434
 `LLM_API_BASE` também atende proxies, OpenRouter, vLLM e Azure. No Telegram, `/modelo` mostra
 qual LLM está ativo.
 
+Para descobrir quais modelos a **sua** chave tem acesso — a lista muda com o tempo e provedores
+descontinuam modelos:
+
+```bash
+./scripts/listar-modelos.sh
+```
+
+Ele consulta a API do provedor configurado e separa os modelos por suporte a visão. Use sempre
+essa lista em vez de nomes copiados de documentação, que envelhecem.
+
 O cliente detecta sozinho o que o provedor suporta: usa `json_schema` quando disponível,
 cai para `json_object` e, no pior caso, coloca o schema no prompt — sempre validando o
 resultado contra o modelo Pydantic e pedindo uma correção ao LLM se a validação falhar.
@@ -179,6 +189,7 @@ proposal_xtraction/
 scripts/
 ├── instalar.sh          # instalação completa em um comando
 ├── rodar.sh             # liga o bot sem precisar ativar o venv
+├── listar-modelos.sh    # modelos disponíveis para a sua chave
 └── instalar-servico.sh  # roda em segundo plano via systemd
 ```
 

@@ -11,9 +11,11 @@ import structlog
 
 from .base import (
     ContentPart,
+    LLMAuthFailed,
     LLMBadOutput,
     LLMError,
     LLMInputTooLarge,
+    LLMModelNotFound,
     LLMRateLimited,
     LLMRefused,
     LLMResult,
@@ -223,4 +225,10 @@ class LiteLLMClient:
             return LLMInputTooLarge("o documento excede a janela de contexto do modelo")
         if isinstance(exc, litellm.ContentPolicyViolationError):
             return LLMRefused("o provedor bloqueou o conteúdo do documento")
+        if isinstance(exc, litellm.NotFoundError):
+            return LLMModelNotFound(
+                "o modelo configurado em LLM_MODEL não existe ou a chave não tem acesso a ele"
+            )
+        if isinstance(exc, litellm.AuthenticationError):
+            return LLMAuthFailed("o provedor recusou a LLM_API_KEY")
         return LLMError(str(exc))

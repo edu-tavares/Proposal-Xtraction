@@ -23,9 +23,11 @@ from ..config import Settings, get_settings
 from ..extraction import pipeline
 from ..extraction.loader import UnsupportedDocument
 from ..llm.base import (
+    LLMAuthFailed,
     LLMBadOutput,
     LLMError,
     LLMInputTooLarge,
+    LLMModelNotFound,
     LLMRateLimited,
     LLMRefused,
 )
@@ -36,6 +38,8 @@ from . import messages
 log = structlog.get_logger(__name__)
 
 ERROS_CONHECIDOS: list[tuple[type[Exception], str]] = [
+    (LLMModelNotFound, messages.ERRO_MODELO_INEXISTENTE),
+    (LLMAuthFailed, messages.ERRO_CHAVE_INVALIDA),
     (LLMRateLimited, messages.ERRO_LIMITE_LLM),
     (LLMInputTooLarge, messages.ERRO_DOCUMENTO_GRANDE),
     (LLMRefused, messages.ERRO_RECUSA),
@@ -153,7 +157,7 @@ async def on_documento(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
                 resultado="erro",
                 exc_info=not isinstance(exc, (LLMError, UnsupportedDocument)),
             )
-            await message.reply_text(texto)
+            await message.reply_text(texto, parse_mode=ParseMode.HTML)
         finally:
             try:
                 await aviso.delete()

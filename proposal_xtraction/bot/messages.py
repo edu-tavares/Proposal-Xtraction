@@ -54,6 +54,17 @@ ERRO_RECUSA = (
     "proposta, tente enviar apenas as páginas comerciais."
 )
 
+ERRO_MODELO_INEXISTENTE = (
+    "O modelo configurado em LLM_MODEL não existe ou sua chave não tem acesso a ele.\n\n"
+    "Rode <code>./scripts/listar-modelos.sh</code> para ver os modelos disponíveis "
+    "na sua conta e escolha um da lista."
+)
+
+ERRO_CHAVE_INVALIDA = (
+    "O provedor de IA recusou a LLM_API_KEY. Confira se a chave no .env está correta e "
+    "se corresponde ao provedor indicado em LLM_MODEL."
+)
+
 ERRO_SAIDA_INVALIDA = (
     "Não consegui estruturar os dados desta proposta. Se o documento for uma foto, "
     "tente uma imagem mais nítida ou o PDF original."
